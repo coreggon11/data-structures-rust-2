@@ -1,8 +1,10 @@
 mod array;
 mod array_list;
+mod linked_list;
 
 use array::Array;
 use array_list::ArrayList;
+use linked_list::LinkedList;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -13,6 +15,7 @@ fn main() {
         match args[1].as_ref() {
             "array" => array(),
             "array_list" => array_list(),
+            "linked_list" => linked_list(),
             _ => println!("Invalid program argument"),
         }
     }
@@ -191,4 +194,8 @@ fn array() {
         println!("Index {}, data {}", index, i);
         index += 1;
     }
+}
+
+fn linked_list() {
+    let mut list: LinkedList<i32> = LinkedList::new();
 }
