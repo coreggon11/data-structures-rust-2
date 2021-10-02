@@ -64,23 +64,19 @@ where
         }
     }
 
-    pub fn copy_expanded(&mut self, length: usize) -> Array<T> {
-        let layout = Layout::array::<T>(length).unwrap();
-        let data = unsafe { alloc::alloc(layout) };
-        let mut result_data = match NonNull::new(data as *mut T) {
-            Some(p) => p,
-            None => alloc::handle_alloc_error(layout),
-        };
-        unsafe {
-            ptr::copy_nonoverlapping(self.data.as_mut(), result_data.as_mut(), self.size);
-        }
-        Array {
-            size: length,
-            data: result_data,
-        }
+    pub fn copy_range(&mut self, from: usize, to: usize) -> Array<T> {
+        self.copy(from, to, to - from)
     }
 
-    pub fn copy(&mut self, from: usize, to: usize) -> Array<T> {
+    pub fn copy_with_size(&mut self, size: usize) -> Array<T> {
+        self.copy(0, self.size, size)
+    }
+
+    pub fn clone(&mut self) -> Array<T> {
+        self.copy(0, self.size, self.size)
+    }
+
+    pub fn copy(&mut self, from: usize, to: usize, size: usize) -> Array<T> {
         if to < from {
             panic!("Index 'to' must be less than index 'from'");
         }
@@ -90,7 +86,7 @@ where
         if to > self.size {
             panic!("Index 'to' must be less than array size");
         }
-        let layout = Layout::array::<T>(to - from).unwrap();
+        let layout = Layout::array::<T>(size).unwrap();
         let data = unsafe { alloc::alloc(layout) };
         let mut result_data = match NonNull::new(data as *mut T) {
             Some(p) => p,
@@ -104,7 +100,7 @@ where
             );
         }
         Array {
-            size: to - from,
+            size: size,
             data: result_data,
         }
     }
@@ -153,11 +149,9 @@ where
         }
     }
 
-    pub fn into_iter(self) -> ArrayIterator<T> {
+    pub fn into_iter(&mut self) -> ArrayIterator<T> {
         let data = self.data;
         let size = self.size;
-
-        std::mem::forget(self);
 
         unsafe {
             ArrayIterator {
