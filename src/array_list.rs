@@ -43,7 +43,7 @@ where
 
 impl<T> ArrayList<T>
 where
-    T: Copy + PartialOrd,
+    T: Copy + PartialEq,
 {
     pub fn new() -> ArrayList<T> {
         ArrayList {
@@ -153,6 +153,19 @@ where
         if self.array.size() > 4 {
             self.array = Array::new(4);
         }
+    }
+
+    pub fn swap(&mut self, index0: usize, index1: usize) {
+        if index0 >= self.size {
+            crate::array::array_index_out_of_bounds(index0, self.size);
+        }
+        if index1 >= self.size {
+            crate::array::array_index_out_of_bounds(index1, self.size);
+        }
+        let first = self.get(index0).unwrap();
+        let second = self.get(index1).unwrap();
+        self.set(index0, second);
+        self.set(index1, first);
     }
 
     fn index_of(&mut self, item: T) -> usize {

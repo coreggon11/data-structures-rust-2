@@ -1,9 +1,11 @@
 mod array;
 mod array_list;
+mod heap;
 mod linked_list;
 
 use array::Array;
 use array_list::ArrayList;
+use heap::Heap;
 use linked_list::LinkedList;
 
 fn main() {
@@ -16,9 +18,29 @@ fn main() {
             "array" => array(),
             "array_list" => array_list(),
             "linked_list" => linked_list(),
+            "heap" => heap(),
             _ => println!("Invalid program argument"),
         }
     }
+}
+
+fn heap() {
+    let mut heap: Heap<i32> = Heap::new();
+
+    // lower number -> higher priority
+    heap.push(46, 1);
+    heap.push(42, 2);
+    heap.push(45, 3);
+    heap.push(27, 4);
+
+    assert_eq!(heap.size(), 4);
+
+    heap.pop();
+    assert_eq!(heap.peek().unwrap(), 2);
+    assert_eq!(heap.peek_priority(), 42);
+
+    heap.clear();
+    assert_eq!(heap.size(), 0);
 }
 
 fn array_list() {
@@ -333,7 +355,6 @@ fn linked_list() {
         );
         assert_eq!(3, list.size());
     }
-    
     {
         let item = list.remove(2);
         assert_eq!(
