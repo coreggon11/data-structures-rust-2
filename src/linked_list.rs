@@ -1,3 +1,4 @@
+use std::boxed;
 use std::ptr;
 
 pub fn list_index_out_of_bounds(index: usize, length: usize) {
@@ -9,14 +10,14 @@ pub fn list_index_out_of_bounds(index: usize, length: usize) {
 
 pub struct LinkedListItem<T> {
     data: T,
-    next: *const LinkedListItem<T>,
-    previous: *const LinkedListItem<T>,
+    next: *mut LinkedListItem<T>,
+    previous: *mut LinkedListItem<T>,
 }
 
 pub struct LinkedList<T> {
     size: usize,
-    begin: *const LinkedListItem<T>,
-    end: *const LinkedListItem<T>,
+    begin: *mut LinkedListItem<T>,
+    end: *mut LinkedListItem<T>,
 }
 
 pub struct LinkedListIterator<T> {
@@ -68,8 +69,8 @@ where
     pub fn new() -> LinkedList<T> {
         LinkedList {
             size: 0,
-            begin: ptr::null(),
-            end: ptr::null(),
+            begin: ptr::null_mut(),
+            end: ptr::null_mut(),
         }
     }
 
@@ -77,7 +78,7 @@ where
         self.size
     }
 
-    fn get_node(&mut self, index: usize) -> LinkedListItem<T> {
+    fn get_node(&mut self, index: usize) -> *mut LinkedListItem<T> {
         let begin = if index <= self.size / 2 { true } else { false };
         let mut item = if begin { self.begin } else { self.end };
         let mut current_index = if begin { 0 } else { self.size - 1 };
@@ -98,7 +99,7 @@ where
                 current_index -= 1;
             }
         }
-        unsafe { ptr::read(item) }
+        item
     }
 
     pub fn get(&mut self, index: usize) -> Option<T> {
@@ -106,7 +107,7 @@ where
             list_index_out_of_bounds(index, self.size);
             None
         } else {
-            Some(self.get_node(index).data)
+            unsafe { Some(ptr::read(self.get_node(index)).data) }
         }
     }
 
@@ -114,18 +115,25 @@ where
         if self.size == 0 {
             let new_item = LinkedListItem {
                 data: item,
-                next: ptr::null(),
-                previous: ptr::null(),
+                next: ptr::null_mut(),
+                previous: ptr::null_mut(),
             };
-            self.begin = &new_item;
-            self.end = &new_item;
+            self.begin = Box::into_raw(Box::new(new_item));
+            self.end = self.begin;
         } else {
             let new_item = LinkedListItem {
                 data: item,
-                next: ptr::null(),
+                next: ptr::null_mut(),
                 previous: self.end,
             };
-            self.end = &new_item;
+            unsafe {
+                let mut end = ptr::read(self.end);
+                let new_ptr = Box::into_raw(Box::new(new_item));
+                end.next = new_ptr;
+                ptr::drop_in_place(self.end);
+                ptr::write(self.end, end);
+                self.end = new_ptr;
+            }
         }
         self.size += 1;
     }
@@ -134,7 +142,13 @@ where
         if index >= self.size {
             list_index_out_of_bounds(index, self.size);
         } else {
-            self.get_node(index).data = item;
+            unsafe {
+                let ptr = self.get_node(index);
+                let mut copy = ptr::read(ptr);
+                copy.data = item;
+                ptr::drop_in_place(ptr);
+                ptr::write(ptr, copy);
+            }
         }
     }
 
@@ -145,19 +159,34 @@ where
             self.size += 1;
             let mut new_node = LinkedListItem {
                 data: item,
-                next: ptr::null(),
-                previous: ptr::null(),
+                next: ptr::null_mut(),
+                previous: ptr::null_mut(),
             };
             if index == 0 {
                 new_node.next = self.begin;
-                self.begin = &new_node;
-            } else {
-                let mut node = self.get_node(index);
-                new_node.previous = &node;
-                new_node.next = node.next;
-                node.next = &new_node;
+                let new_ptr = Box::into_raw(Box::new(new_node));
                 unsafe {
-                    ptr::read(new_node.next).previous = &new_node;
+                    let mut begin = ptr::read(self.begin);
+                    begin.previous = new_ptr;
+                    ptr::drop_in_place(self.begin);
+                    ptr::write(self.begin, begin);
+                    self.begin = new_ptr;
+                }
+            } else {
+                let node = self.get_node(index);
+                new_node.previous = node;
+                unsafe {
+                    new_node.next = ptr::read(node).next;
+                    let next_ptr = new_node.next;
+                    let new_ptr = Box::into_raw(Box::new(new_node));
+                    let mut node_value = ptr::read(node);
+                    node_value.next = new_ptr;
+                    ptr::drop_in_place(node);
+                    ptr::write(node, node_value);
+                    let mut node_value_next = ptr::read(next_ptr);
+                    node_value_next.previous = new_ptr;
+                    ptr::drop_in_place(next_ptr);
+                    ptr::write(next_ptr, node_value_next);
                 }
             }
         }
@@ -178,7 +207,7 @@ where
             }
             current_index += 1;
         }
-        unsafe { self.remove_node(&ptr::read(current_node)) }
+        self.remove_node(current_node)
     }
 
     pub fn remove(&mut self, index: usize) -> Option<T> {
@@ -187,18 +216,18 @@ where
             None
         } else {
             let node = self.get_node(index);
-            self.remove_node(&node)
+            self.remove_node(node)
         }
     }
 
-    fn remove_node(&mut self, node: *const LinkedListItem<T>) -> Option<T> {
+    fn remove_node(&mut self, node: *mut LinkedListItem<T>) -> Option<T> {
         let out: T;
         if self.size == 1 {
             unsafe {
                 out = ptr::read(self.begin).data;
             }
-            self.begin = ptr::null();
-            self.end = ptr::null();
+            self.begin = ptr::null_mut();
+            self.end = ptr::null_mut();
         } else if node == self.begin {
             unsafe {
                 out = ptr::read(self.begin).data;
@@ -218,14 +247,28 @@ where
                 ptr::read(next).previous = previous;
             }
         }
+        unsafe {
+            ptr::drop_in_place(node);
+        }
         self.size -= 1;
         Some(out)
     }
 
     pub fn clear(&mut self) {
         self.size = 0;
-        self.begin = ptr::null();
-        self.end = ptr::null();
+        let mut current = self.begin;
+        loop {
+            if current == ptr::null_mut() {
+                break;
+            }
+            unsafe {
+                let next = ptr::read(current).next;
+                ptr::drop_in_place(current);
+                current = next;
+            }
+        }
+        self.begin = ptr::null_mut();
+        self.end = ptr::null_mut();
     }
 
     pub fn into_iter(&self) -> LinkedListIterator<T> {

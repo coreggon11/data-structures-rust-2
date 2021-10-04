@@ -198,4 +198,32 @@ fn array() {
 
 fn linked_list() {
     let mut list: LinkedList<i32> = LinkedList::new();
+
+    list.add(0);
+    list.add(1);
+
+    assert_eq!(2, list.size());
+
+    {
+        let item = list.get(0);
+        assert_eq!(0, item.unwrap());
+    }
+    {
+        let item = list.get(1);
+        assert_eq!(
+            1,
+            item.unwrap(),
+            "Item expected {} was {}",
+            1,
+            item.unwrap()
+        );
+    }
+    //pub fn add(&mut self, item: T) {
+    //pub fn set(&mut self, index: usize, item: T) {
+    //pub fn insert(&mut self, index: usize, item: T) {
+    //pub fn remove_item(&mut self, item: T) -> Option<T> {
+    //pub fn remove(&mut self, index: usize) -> Option<T> {
+    // pub fn clear(&mut self) {
+    //pub fn into_iter(&self) -> LinkedListIterator<T> {
+    // list.clear();
 }
