@@ -201,8 +201,9 @@ fn linked_list() {
 
     list.add(0);
     list.add(1);
+    list.add(2);
 
-    assert_eq!(2, list.size());
+    assert_eq!(3, list.size());
 
     {
         let item = list.get(0);
@@ -218,12 +219,138 @@ fn linked_list() {
             item.unwrap()
         );
     }
-    //pub fn add(&mut self, item: T) {
-    //pub fn set(&mut self, index: usize, item: T) {
-    //pub fn insert(&mut self, index: usize, item: T) {
-    //pub fn remove_item(&mut self, item: T) -> Option<T> {
-    //pub fn remove(&mut self, index: usize) -> Option<T> {
-    // pub fn clear(&mut self) {
-    //pub fn into_iter(&self) -> LinkedListIterator<T> {
-    // list.clear();
+
+    list.set(0, 11);
+    {
+        let item = list.get(0);
+        assert_eq!(
+            11,
+            item.unwrap(),
+            "Item expected {} was {}",
+            11,
+            item.unwrap()
+        );
+    }
+
+    list.set(1, 12);
+    {
+        let item = list.get(1);
+        assert_eq!(
+            12,
+            item.unwrap(),
+            "Item expected {} was {}",
+            12,
+            item.unwrap()
+        );
+    }
+
+    list.insert(0, 55);
+    {
+        let item = list.get(0);
+        assert_eq!(
+            55,
+            item.unwrap(),
+            "Item expected {} was {}",
+            55,
+            item.unwrap()
+        );
+        assert_eq!(4, list.size());
+    }
+
+    list.insert(1, 22);
+    {
+        let item = list.get(1);
+        assert_eq!(
+            22,
+            item.unwrap(),
+            "Item expected {} was {}",
+            22,
+            item.unwrap()
+        );
+        assert_eq!(5, list.size());
+    }
+
+    {
+        let item = list.remove_item(55);
+        assert_eq!(
+            55,
+            item.unwrap(),
+            "Item expected {} was {}",
+            55,
+            item.unwrap()
+        );
+        assert_eq!(4, list.size());
+    }
+
+    {
+        let item = list.remove_item(11);
+        assert_eq!(
+            11,
+            item.unwrap(),
+            "Item expected {} was {}",
+            11,
+            item.unwrap()
+        );
+        assert_eq!(3, list.size());
+    }
+
+    {
+        let item = list.remove_item(2);
+        assert_eq!(
+            2,
+            item.unwrap(),
+            "Item expected {} was {}",
+            2,
+            item.unwrap()
+        );
+        assert_eq!(2, list.size());
+    }
+
+    list.add(3);
+    list.add(4);
+    list.add(5);
+
+    {
+        let item = list.remove(0);
+        assert_eq!(
+            22,
+            item.unwrap(),
+            "Item expected {} was {}",
+            22,
+            item.unwrap()
+        );
+        assert_eq!(4, list.size());
+    }
+
+    {
+        let item = list.remove(1);
+        assert_eq!(
+            3,
+            item.unwrap(),
+            "Item expected {} was {}",
+            3,
+            item.unwrap()
+        );
+        assert_eq!(3, list.size());
+    }
+    
+    {
+        let item = list.remove(2);
+        assert_eq!(
+            5,
+            item.unwrap(),
+            "Item expected {} was {}",
+            5,
+            item.unwrap()
+        );
+        assert_eq!(2, list.size());
+    }
+
+    let mut index = 0;
+    for i in list.into_iter() {
+        println!("Index {}, data {}", index, i);
+        index += 1;
+    }
+
+    list.clear();
 }

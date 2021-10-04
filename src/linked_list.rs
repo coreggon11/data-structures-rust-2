@@ -1,4 +1,3 @@
-use std::boxed;
 use std::ptr;
 
 pub fn list_index_out_of_bounds(index: usize, length: usize) {
@@ -173,20 +172,19 @@ where
                     self.begin = new_ptr;
                 }
             } else {
-                let node = self.get_node(index);
-                new_node.previous = node;
+                let node_ptr = self.get_node(index);
                 unsafe {
-                    new_node.next = ptr::read(node).next;
-                    let next_ptr = new_node.next;
+                    let mut node = ptr::read(node_ptr);
+                    new_node.previous = node.previous;
+                    new_node.next = node_ptr;
+                    let mut old_prev = ptr::read(node.previous);
                     let new_ptr = Box::into_raw(Box::new(new_node));
-                    let mut node_value = ptr::read(node);
-                    node_value.next = new_ptr;
-                    ptr::drop_in_place(node);
-                    ptr::write(node, node_value);
-                    let mut node_value_next = ptr::read(next_ptr);
-                    node_value_next.previous = new_ptr;
-                    ptr::drop_in_place(next_ptr);
-                    ptr::write(next_ptr, node_value_next);
+                    old_prev.next = new_ptr;
+                    ptr::drop_in_place(node.previous);
+                    ptr::write(node.previous, old_prev);
+                    node.previous = new_ptr;
+                    ptr::drop_in_place(node_ptr);
+                    ptr::write(node_ptr, node);
                 }
             }
         }
@@ -232,19 +230,34 @@ where
             unsafe {
                 out = ptr::read(self.begin).data;
                 self.begin = ptr::read(self.begin).next;
+                let mut begin = ptr::read(self.begin);
+                begin.previous = ptr::null_mut();
+                ptr::drop_in_place(self.begin);
+                ptr::write(self.begin, begin);
             }
         } else if node == self.end {
             unsafe {
                 out = ptr::read(self.end).data;
                 self.end = ptr::read(self.end).previous;
+                let mut end = ptr::read(self.end);
+                end.next = ptr::null_mut();
+                ptr::drop_in_place(self.end);
+                ptr::write(self.end, end);
             }
         } else {
             unsafe {
-                out = ptr::read(node).data;
-                let next = ptr::read(node).next;
-                let previous = ptr::read(node).previous;
-                ptr::read(previous).next = next;
-                ptr::read(next).previous = previous;
+                let to_remove = ptr::read(node);
+                out = to_remove.data;
+                let ptr_prev = to_remove.previous;
+                let ptr_next = to_remove.next;
+                let mut prev = ptr::read(ptr_prev);
+                prev.next = ptr_next;
+                ptr::drop_in_place(ptr_prev);
+                ptr::write(ptr_prev, prev);
+                let mut next = ptr::read(ptr_next);
+                next.previous = ptr_prev;
+                ptr::drop_in_place(ptr_next);
+                ptr::write(ptr_next, next);
             }
         }
         unsafe {
